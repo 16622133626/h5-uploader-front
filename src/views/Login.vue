@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h1 class="login-title">图片上传系统</h1>
+      <h1 class="login-title">婚纱录入</h1>
       <h2 class="login-subtitle">登录</h2>
       <form @submit.prevent="handleSubmit" class="login-form">
         <div class="form-group">
@@ -30,7 +30,7 @@
       <div class="login-hint">
         <p>提示：不同账号拥有不同权限</p>
         <p><strong>管理员账号：</strong>admin/admin123 或 uploader/upload123</p>
-        <p><strong>客户账号：</strong>customer/customer123</p>
+        <!-- <p><strong>客户账号：</strong>customer/customer123</p> -->
       </div>
     </div>
   </div>

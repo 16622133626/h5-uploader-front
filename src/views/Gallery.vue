@@ -182,6 +182,64 @@
         </div>
       </div>
     </div>
+
+    <!-- 欢迎弹框（未登录用户首次进入） -->
+    <div v-if="showWelcomeModal" class="welcome-modal" @click.self="closeWelcomeModal">
+      <!-- 背景粒子效果 -->
+      <div class="particles-container">
+        <div v-for="i in 12" :key="i" class="particle" :style="getParticleStyle(i)"></div>
+      </div>
+      
+      <div class="welcome-content" @click.stop>
+        <!-- Logo 预留位置 -->
+        <div class="welcome-logo">
+          <img src="../assets//images//logo.jpg" alt="Logo" class="logo-img" />
+        </div>
+        
+        <!-- 主文案 -->
+        <h1 class="welcome-title">
+          <span v-for="(char, index) in mainText" :key="index" 
+                class="title-char" 
+                :style="{ animationDelay: `${index * 0.05}s` }">
+            {{ char === ' ' ? '\u00A0' : char }}
+          </span>
+        </h1>
+        
+        <!-- 副文案 -->
+        <p class="welcome-subtitle">
+          大小姐嫁到 · 把幸福穿在身上
+        </p>
+        
+        <!-- 按钮组 -->
+        <div class="welcome-buttons">
+          <button 
+            @click="handleMainButtonClick" 
+            @mouseenter="onMainButtonHover"
+            @mouseleave="onMainButtonLeave"
+            class="welcome-btn welcome-btn-primary"
+            :class="{ 'btn-shake': buttonShake }"
+          >
+            <span class="btn-text">{{ mainButtonText }}</span>
+            <span class="btn-emoji">👑</span>
+          </button>
+          
+          <button 
+            @click="closeWelcomeModal" 
+            class="welcome-btn welcome-btn-secondary"
+          >
+            <span class="btn-text">先偷偷看看</span>
+            <span class="btn-emoji">👀</span>
+          </button>
+        </div>
+        
+        <!-- 点击按钮时的彩蛋文案 -->
+        <transition name="sparkle">
+          <div v-if="showSparkle" class="sparkle-text">
+            ✨ 大小姐，欢迎回家 ✨
+          </div>
+        </transition>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -200,6 +258,13 @@ const loading = ref(true)
 const selectedFilterCategory = ref('')
 const previewImage = ref(null)
 const layoutMode = ref('grid') // 'list' 或 'grid'
+
+// 欢迎弹框相关
+const showWelcomeModal = ref(false)
+const mainText = '愿你披上婚纱这一刻，是大小姐正式出嫁的高光时刻。'
+const mainButtonText = ref('本小姐要挑婚纱了')
+const buttonShake = ref(false)
+const showSparkle = ref(false)
 
 const loadImages = async () => {
   loading.value = true
@@ -242,7 +307,69 @@ onMounted(() => {
     layoutMode.value = savedLayout
   }
   loadImages()
+  
+  // 检查是否需要显示欢迎弹框（未登录用户首次访问）
+  checkWelcomeModal()
 })
+
+// 检查是否显示欢迎弹框
+const checkWelcomeModal = () => {
+  // 如果已登录，不显示
+  if (authStore.isAuthenticated) {
+    return
+  }
+  
+  // 检查是否已经显示过
+  const hasSeenWelcome = localStorage.getItem('hasSeenWelcome')
+  if (!hasSeenWelcome) {
+    // 延迟一点显示，让页面先加载
+    setTimeout(() => {
+      showWelcomeModal.value = true
+    }, 300)
+  }
+}
+
+// 关闭欢迎弹框
+const closeWelcomeModal = () => {
+  showWelcomeModal.value = false
+  localStorage.setItem('hasSeenWelcome', 'true')
+}
+
+// 主按钮点击
+const handleMainButtonClick = () => {
+  buttonShake.value = true
+  showSparkle.value = true
+  
+  setTimeout(() => {
+    buttonShake.value = false
+    closeWelcomeModal()
+  }, 500)
+  
+  setTimeout(() => {
+    showSparkle.value = false
+  }, 2000)
+}
+
+// 主按钮hover效果
+const onMainButtonHover = () => {
+  mainButtonText.value = '别催，本小姐来了'
+}
+
+const onMainButtonLeave = () => {
+  mainButtonText.value = '本小姐要挑婚纱了'
+}
+
+// 生成粒子样式
+const getParticleStyle = (index) => {
+  const delay = index * 0.3
+  const duration = 3 + Math.random() * 2
+  const left = Math.random() * 100
+  return {
+    left: `${left}%`,
+    animationDelay: `${delay}s`,
+    animationDuration: `${duration}s`
+  }
+}
 
 // 监听布局变化，保存到本地存储
 watch(layoutMode, (newMode) => {
@@ -948,6 +1075,316 @@ const handleLogout = () => {
 
   .preview-info h3 {
     font-size: 20px;
+  }
+}
+
+/* ========== 欢迎弹框样式 ========== */
+.welcome-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.welcome-content {
+  position: relative;
+  background: linear-gradient(135deg, #FFF8F0 0%, #FFE4E1 100%);
+  border-radius: 24px;
+  padding: 48px 40px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(212, 165, 116, 0.4);
+  border: 2px solid rgba(212, 165, 116, 0.3);
+  animation: contentSlideUp 0.3s ease;
+}
+
+@keyframes contentSlideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Logo 区域 */
+.welcome-logo {
+  margin-bottom: 32px;
+  animation: logoScale 0.5s ease 0.2s both;
+}
+
+@keyframes logoScale {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.logo-img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(212, 165, 116, 0.3);
+}
+
+/* 主文案 */
+.welcome-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #8B6F47;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+  letter-spacing: 1px;
+}
+
+.title-char {
+  display: inline-block;
+  opacity: 0;
+  animation: charFadeIn 0.4s ease forwards;
+}
+
+@keyframes charFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 副文案 */
+.welcome-subtitle {
+  font-size: 16px;
+  color: #C19A6B;
+  margin: 0 0 40px 0;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  animation: subtitleFadeIn 0.5s ease 0.8s both;
+}
+
+@keyframes subtitleFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 按钮组 */
+.welcome-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: buttonsFadeIn 0.5s ease 1s both;
+}
+
+@keyframes buttonsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-btn {
+  width: 100%;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-btn-primary {
+  background: linear-gradient(135deg, #D4A574 0%, #C19A6B 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(212, 165, 116, 0.4);
+}
+
+.welcome-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212, 165, 116, 0.5);
+}
+
+.welcome-btn-primary:active {
+  transform: translateY(0);
+}
+
+.welcome-btn-secondary {
+  background: rgba(255, 255, 255, 0.8);
+  color: #D4A574;
+  border: 2px solid rgba(212, 165, 116, 0.3);
+}
+
+.welcome-btn-secondary:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(212, 165, 116, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-text {
+  transition: all 0.3s ease;
+}
+
+.btn-emoji {
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+.welcome-btn:hover .btn-emoji {
+  transform: scale(1.2) rotate(5deg);
+}
+
+/* 按钮抖动效果 */
+.btn-shake {
+  animation: buttonShake 0.5s ease;
+}
+
+@keyframes buttonShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px) rotate(-1deg); }
+  20%, 40%, 60%, 80% { transform: translateX(3px) rotate(1deg); }
+}
+
+/* 彩蛋文案 */
+.sparkle-text {
+  position: absolute;
+  top: -50px;
+  right: 20px;
+  font-size: 14px;
+  color: #D4A574;
+  font-weight: 600;
+  animation: sparkleFloat 2s ease;
+  pointer-events: none;
+}
+
+@keyframes sparkleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.8);
+  }
+}
+
+.sparkle-enter-active,
+.sparkle-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.sparkle-enter-from,
+.sparkle-leave-to {
+  opacity: 0;
+}
+
+/* 粒子效果 */
+.particles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: radial-gradient(circle, rgba(212, 165, 116, 0.6) 0%, rgba(212, 165, 116, 0) 70%);
+  border-radius: 50%;
+  bottom: -10px;
+  animation: particleFloat linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(20px);
+    opacity: 0;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .welcome-content {
+    padding: 36px 24px;
+    max-width: 90%;
+  }
+
+  .welcome-title {
+    font-size: 22px;
+  }
+
+  .welcome-subtitle {
+    font-size: 14px;
+  }
+
+  .welcome-btn {
+    font-size: 16px;
+    padding: 14px 20px;
+  }
+
+  .logo-img {
+    width: 100px;
+    height: 100px;
   }
 }
 </style>

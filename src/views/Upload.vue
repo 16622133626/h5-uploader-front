@@ -1,5 +1,43 @@
 <template>
   <div class="upload-container">
+    <!-- Admin 上传页弹框 -->
+    <div v-if="showAdminModal" class="admin-modal" @click.self="closeAdminModal">
+      <div class="admin-modal-content" :class="{ 'modal-shake': modalShake }">
+        <!-- 右上角小字 -->
+        <transition name="sparkle">
+          <div v-if="showSparkleText" class="sparkle-text">
+            {{ sparkleText }}
+          </div>
+        </transition>
+        
+        <!-- 主文案 -->
+        <h2 class="admin-modal-title">
+          {{ randomText }}
+        </h2>
+        
+        <!-- 按钮组 -->
+        <div class="admin-modal-buttons">
+          <button 
+            @click="handleStartWork" 
+            @mouseenter="onMainButtonHover"
+            @mouseleave="onMainButtonLeave"
+            class="admin-btn admin-btn-primary"
+          >
+            <span class="btn-text">{{ mainButtonText }}</span>
+            <span class="btn-emoji">💼</span>
+          </button>
+          
+          <button 
+            @click="closeAdminModal" 
+            class="admin-btn admin-btn-secondary"
+          >
+            <span class="btn-text">{{ secondaryButtonText }}</span>
+            <span class="btn-emoji">💧</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="user-info-card">
         <div class="user-avatar">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -97,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { uploadImage } from '../utils/api'
@@ -112,6 +150,91 @@ const uploading = ref(false)
 const message = ref('')
 const selectedCategory = ref('')
 const imageName = ref('')
+
+// Admin 弹框相关
+const showAdminModal = ref(false)
+const modalShake = ref(false)
+const showSparkleText = ref(false)
+const sparkleText = ref('')
+const mainButtonText = ref('开工！')
+const secondaryButtonText = ref('先喝口水再干')
+
+// 随机文案池
+const randomTexts = [
+  '大小姐上线，开始打工赚钱了。',
+  '老板娘今天也在亲自搞事业。',
+  '为浪漫打工的一天开始了。',
+  '今天也要靠自己养活轻奢。',
+  '幸福不是自动生成的。'
+]
+
+const randomText = ref('')
+
+// 随机彩蛋文案
+const sparkleTexts = [
+  '系统很懂事，没有打卡。',
+  '今天也要为幸福 KPI 努力 ✨',
+  '老板娘正在努力...',
+  '轻奢不是随便的 💎'
+]
+
+// 检查是否需要显示弹框
+onMounted(() => {
+  // 只有owner账号才显示
+  if (authStore.isOwner) {
+    // 检查今天是否已经显示过（可选，也可以每次都显示）
+    const today = new Date().toDateString()
+    const lastShown = localStorage.getItem('adminModalLastShown')
+    
+    // 如果今天没显示过，或者每次都显示（注释掉日期检查即可）
+    if (!lastShown || lastShown !== today) {
+      // 随机选择文案
+      randomText.value = randomTexts[Math.floor(Math.random() * randomTexts.length)]
+      
+      // 延迟显示，让页面先加载
+      setTimeout(() => {
+        showAdminModal.value = true
+        // 轻微抖动效果
+        modalShake.value = true
+        setTimeout(() => {
+          modalShake.value = false
+        }, 500)
+        
+        // 随机显示右上角小字
+        if (Math.random() > 0.5) {
+          setTimeout(() => {
+            sparkleText.value = sparkleTexts[Math.floor(Math.random() * sparkleTexts.length)]
+            showSparkleText.value = true
+            setTimeout(() => {
+              showSparkleText.value = false
+            }, 2000)
+          }, 800)
+        }
+      }, 300)
+    }
+  }
+})
+
+// 关闭弹框
+const closeAdminModal = () => {
+  showAdminModal.value = false
+  const today = new Date().toDateString()
+  localStorage.setItem('adminModalLastShown', today)
+}
+
+// 主按钮点击
+const handleStartWork = () => {
+  closeAdminModal()
+}
+
+// 主按钮hover效果
+const onMainButtonHover = () => {
+  mainButtonText.value = '算了，还是我来吧'
+}
+
+const onMainButtonLeave = () => {
+  mainButtonText.value = '开工！'
+}
 
 const handleFileChange = (e) => {
   const file = e.target.files[0]
@@ -462,6 +585,200 @@ const goToGallery = () => {
 
 .form-select option {
   padding: 8px;
+}
+
+/* ========== Admin 弹框样式 ========== */
+.admin-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.admin-modal-content {
+  position: relative;
+  background: linear-gradient(135deg, #FFF8F0 0%, #FFE4E1 100%);
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(212, 165, 116, 0.35);
+  border: 2px solid rgba(212, 165, 116, 0.25);
+  animation: contentSlideIn 0.3s ease;
+}
+
+@keyframes contentSlideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 轻微左右抖动效果（像打工人叹气） */
+.modal-shake {
+  animation: modalShake 0.5s ease;
+}
+
+@keyframes modalShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+/* 主文案 */
+.admin-modal-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #8B6F47;
+  line-height: 1.5;
+  margin: 0 0 32px 0;
+  letter-spacing: 0.5px;
+}
+
+/* 按钮组 */
+.admin-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-btn {
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-btn-primary {
+  background: linear-gradient(135deg, #D4A574 0%, #C19A6B 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.4);
+}
+
+.admin-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 165, 116, 0.5);
+}
+
+.admin-btn-primary:active {
+  transform: translateY(0);
+}
+
+.admin-btn-secondary {
+  background: rgba(255, 255, 255, 0.9);
+  color: #D4A574;
+  border: 2px solid rgba(212, 165, 116, 0.3);
+}
+
+.admin-btn-secondary:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(212, 165, 116, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-text {
+  transition: all 0.3s ease;
+}
+
+.btn-emoji {
+  font-size: 18px;
+  transition: transform 0.3s ease;
+}
+
+.admin-btn:hover .btn-emoji {
+  transform: scale(1.15) rotate(5deg);
+}
+
+/* 右上角彩蛋文案 */
+.sparkle-text {
+  position: absolute;
+  top: -35px;
+  right: 20px;
+  font-size: 13px;
+  color: #C19A6B;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(212, 165, 116, 0.2);
+  white-space: nowrap;
+  animation: sparkleFloat 2s ease;
+  pointer-events: none;
+}
+
+@keyframes sparkleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.9);
+  }
+}
+
+.sparkle-enter-active,
+.sparkle-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.sparkle-enter-from,
+.sparkle-leave-to {
+  opacity: 0;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .admin-modal-content {
+    padding: 32px 24px;
+    max-width: 90%;
+  }
+
+  .admin-modal-title {
+    font-size: 20px;
+  }
+
+  .admin-btn {
+    font-size: 15px;
+    padding: 12px 20px;
+  }
 }
 </style>
 

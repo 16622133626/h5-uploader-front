@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  base: '/h5-upload/',
   server: {
     host: '0.0.0.0', // 允许外部访问
     port: 3000,
