@@ -42,19 +42,19 @@
     <div class="filter-section">
       <div class="filter-content">
         <div class="filter-group">
-          <div class="filter-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          <button @click="showFilterModal = true" class="filter-button">
+            <div class="filter-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+            </div>
+            <span class="filter-button-text">
+              {{ selectedFilterCategory ? getCategoryLabel(selectedFilterCategory) : '全部分类' }}
+            </span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="filter-arrow">
+              <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
-          </div>
-          <select v-model="selectedFilterCategory" @change="handleFilterChange" class="filter-select">
-            <option value="">全部分类</option>
-            <optgroup v-for="group in categories" :key="group.group" :label="group.group">
-              <option v-for="option in group.options" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </optgroup>
-          </select>
+          </button>
           <span v-if="selectedFilterCategory" class="filter-count">
             <span class="count-number">{{ filteredImages.length }}</span>
             <span class="count-text">张</span>
@@ -91,6 +91,56 @@
       </div>
     </div>
 
+    <!-- 分类筛选弹框 -->
+    <div v-if="showFilterModal" class="filter-modal" @click.self="showFilterModal = false">
+      <div class="filter-modal-content">
+        <div class="filter-modal-header">
+          <h3 class="filter-modal-title">选择分类</h3>
+          <button @click="showFilterModal = false" class="filter-modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="filter-modal-body">
+          <!-- 全部选项 -->
+          <button
+            @click="selectCategory('')"
+            :class="['filter-option', 'filter-option-all', { active: !selectedFilterCategory }]"
+          >
+            <span class="filter-option-text">全部分类</span>
+            <span v-if="!selectedFilterCategory" class="filter-option-check">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+          </button>
+
+          <!-- 分组分类 -->
+          <div v-for="group in categories" :key="group.group" class="filter-group-section">
+            <div class="filter-group-title">{{ group.group }}</div>
+            <div class="filter-options-grid">
+              <button
+                v-for="option in group.options"
+                :key="option.value"
+                @click="selectCategory(option.value)"
+                :class="['filter-option', { active: selectedFilterCategory === option.value }]"
+              >
+                <span class="filter-option-text">{{ option.label }}</span>
+                <span v-if="selectedFilterCategory === option.value" class="filter-option-check">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="loading" class="loading">加载中...</div>
 
     <div v-else-if="images.length === 0" class="empty-gallery">
@@ -110,14 +160,6 @@
           <div class="image-overlay">
             <div class="preview-hint">点击预览</div>
           </div>
-          <button
-            v-if="authStore.isAuthenticated"
-            @click.stop="handleDelete(image.id)"
-            class="delete-button"
-            title="删除"
-          >
-            ×
-          </button>
         </div>
         <div class="image-info">
           <p class="image-name">{{ image.name }}</p>
@@ -129,6 +171,18 @@
           <p class="image-meta">
             {{ image.uploader }} · {{ image.uploadTime }}
           </p>
+          <!-- 删除按钮（仅管理员可见，右下角） -->
+          <button
+            v-if="authStore.isOwner"
+            @click.stop="showDeleteConfirm(image.id)"
+            class="delete-button-trash"
+            title="删除"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -141,14 +195,6 @@
           <div class="image-overlay">
             <div class="preview-hint">点击预览</div>
           </div>
-          <button
-            v-if="authStore.isAuthenticated"
-            @click.stop="handleDelete(image.id)"
-            class="delete-button"
-            title="删除"
-          >
-            ×
-          </button>
         </div>
         <div class="image-info-grid">
           <p class="image-name">{{ image.name }}</p>
@@ -160,6 +206,18 @@
           <p class="image-meta">
             {{ image.uploader }} · {{ image.uploadTime }}
           </p>
+          <!-- 删除按钮（仅管理员可见，右下角） -->
+          <button
+            v-if="authStore.isOwner"
+            @click.stop="showDeleteConfirm(image.id)"
+            class="delete-button-trash"
+            title="删除"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -179,6 +237,27 @@
           <p class="preview-meta">
             {{ previewImage.uploader }} · {{ previewImage.uploadTime }}
           </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除确认弹框 -->
+    <div v-if="showDeleteConfirmModal" class="delete-confirm-modal" @click.self="closeDeleteConfirm">
+      <div class="delete-confirm-content">
+        <div class="delete-confirm-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </div>
+        <h3 class="delete-confirm-title">看仔细嗷，确定下架了嘛！！</h3>
+        <div class="delete-confirm-buttons">
+          <button @click="handleDelete" class="delete-confirm-btn delete-confirm-btn-primary">
+            含泪下架
+          </button>
+          <button @click="closeDeleteConfirm" class="delete-confirm-btn delete-confirm-btn-cancel">
+            不了不了
+          </button>
         </div>
       </div>
     </div>
@@ -258,6 +337,7 @@ const loading = ref(true)
 const selectedFilterCategory = ref('')
 const previewImage = ref(null)
 const layoutMode = ref('grid') // 'list' 或 'grid'
+const showFilterModal = ref(false)
 
 // 欢迎弹框相关
 const showWelcomeModal = ref(false)
@@ -388,6 +468,12 @@ const handleFilterChange = () => {
   // 筛选逻辑已在 computed 中处理
 }
 
+// 选择分类
+const selectCategory = (value) => {
+  selectedFilterCategory.value = value
+  showFilterModal.value = false
+}
+
 const openPreview = (image) => {
   previewImage.value = image
   // 禁止背景滚动
@@ -400,20 +486,38 @@ const closePreview = () => {
   document.body.style.overflow = ''
 }
 
-const handleDelete = async (id) => {
-  if (!window.confirm('确定要删除这张图片吗？')) {
-    return
-  }
+// 删除确认相关
+const showDeleteConfirmModal = ref(false)
+const deleteTargetId = ref(null)
+
+// 显示删除确认弹框
+const showDeleteConfirm = (id) => {
+  deleteTargetId.value = id
+  showDeleteConfirmModal.value = true
+}
+
+// 关闭删除确认弹框
+const closeDeleteConfirm = () => {
+  showDeleteConfirmModal.value = false
+  deleteTargetId.value = null
+}
+
+// 确认删除
+const handleDelete = async () => {
+  if (!deleteTargetId.value) return
 
   try {
-    const result = await deleteImage(id)
+    const result = await deleteImage(deleteTargetId.value)
     if (result.success) {
-      images.value = images.value.filter(img => img.id !== id)
+      images.value = images.value.filter(img => img.id !== deleteTargetId.value)
+      closeDeleteConfirm()
     } else {
       alert('删除失败：' + (result.message || '未知错误'))
     }
   } catch (error) {
     alert('删除失败：' + error.message)
+  } finally {
+    deleteTargetId.value = null
   }
 }
 
@@ -694,35 +798,40 @@ const handleLogout = () => {
   opacity: 1;
 }
 
-.delete-button {
+/* 删除按钮（右下角垃圾箱图标） */
+.delete-button-trash {
   position: absolute;
-  top: 8px;
+  bottom: 8px;
   right: 8px;
-  width: 32px;
-  height: 32px;
-  background: rgba(244, 67, 54, 0.9);
+  width: 36px;
+  height: 36px;
+  background: rgba(244, 67, 54, 0.85);
   color: white;
   border: none;
-  border-radius: 50%;
-  font-size: 20px;
-  line-height: 1;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  opacity: 0;
+  opacity: 0.8;
   z-index: 10;
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
-.gallery-item-list:hover .delete-button,
-.gallery-item-grid:hover .delete-button {
+.delete-button-trash:hover {
+  background: rgba(244, 67, 54, 1);
   opacity: 1;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
 }
 
-.delete-button:hover {
-  background: #d32f2f;
-  transform: scale(1.1);
+.delete-button-trash:active {
+  transform: scale(0.95);
+}
+
+.delete-button-trash svg {
+  stroke-width: 2.5;
 }
 
 /* 列表布局的信息 */
@@ -732,6 +841,7 @@ const handleLogout = () => {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  position: relative;
 }
 
 /* 网格布局的信息 */
@@ -739,6 +849,7 @@ const handleLogout = () => {
   padding: 8px;
   display: flex;
   flex-direction: column;
+  position: relative;
   /* gap: 8px; */
 }
 
@@ -842,24 +953,43 @@ const handleLogout = () => {
   flex-shrink: 0;
 }
 
-.filter-select {
+/* 筛选按钮 */
+.filter-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 10px 16px;
   border: 2px solid rgba(212, 165, 116, 0.3);
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 14px;
   background: white;
   cursor: pointer;
   transition: all 0.3s ease;
   outline: none;
-  min-width: 200px;
+  min-width: 180px;
   color: #5a4a3a;
   font-weight: 500;
 }
 
-.filter-select:focus {
+.filter-button:hover {
   border-color: #D4A574;
-  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.15);
   background: #FFF8F0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(212, 165, 116, 0.2);
+}
+
+.filter-button-text {
+  flex: 1;
+  text-align: left;
+}
+
+.filter-arrow {
+  transition: transform 0.3s ease;
+  color: #C19A6B;
+}
+
+.filter-button:hover .filter-arrow {
+  transform: translateY(2px);
 }
 
 .filter-count {
@@ -882,6 +1012,211 @@ const handleLogout = () => {
 .count-text {
   font-size: 12px;
   opacity: 0.9;
+}
+
+/* ========== 分类筛选弹框样式 ========== */
+.filter-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1500;
+  padding: 20px;
+  animation: modalFadeIn 0.3s ease;
+}
+
+.filter-modal-content {
+  background: linear-gradient(135deg, #FFF8F0 0%, #FFFFFF 100%);
+  border-radius: 20px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(212, 165, 116, 0.4);
+  border: 2px solid rgba(212, 165, 116, 0.25);
+  animation: filterModalSlideIn 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes filterModalSlideIn {
+  from {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.filter-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  border-bottom: 1px solid rgba(212, 165, 116, 0.15);
+}
+
+.filter-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #8B6F47;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.filter-modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(212, 165, 116, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8B6F47;
+  transition: all 0.3s ease;
+}
+
+.filter-modal-close:hover {
+  background: rgba(212, 165, 116, 0.2);
+  transform: rotate(90deg);
+}
+
+.filter-modal-body {
+  padding: 20px 28px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* 全部选项 */
+.filter-option-all {
+  margin-bottom: 24px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 分组标题 */
+.filter-group-section {
+  margin-bottom: 24px;
+}
+
+.filter-group-section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #C19A6B;
+  margin-bottom: 12px;
+  padding-left: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* 分类选项网格 */
+.filter-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+/* 分类选项按钮 */
+.filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 2px solid rgba(212, 165, 116, 0.25);
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.filter-option:hover {
+  border-color: rgba(212, 165, 116, 0.5);
+  background: #FFF8F0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.15);
+}
+
+.filter-option.active {
+  border-color: #D4A574;
+  background: linear-gradient(135deg, rgba(212, 165, 116, 0.1) 0%, rgba(193, 154, 107, 0.1) 100%);
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.2);
+}
+
+.filter-option-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #5a4a3a;
+  flex: 1;
+}
+
+.filter-option.active .filter-option-text {
+  color: #8B6F47;
+  font-weight: 600;
+}
+
+.filter-option-check {
+  color: #D4A574;
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  animation: checkMarkIn 0.3s ease;
+}
+
+@keyframes checkMarkIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .filter-modal-content {
+    max-width: 90%;
+    max-height: 85vh;
+  }
+
+  .filter-modal-header {
+    padding: 20px 20px;
+  }
+
+  .filter-modal-body {
+    padding: 16px 20px 24px;
+  }
+
+  .filter-options-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .filter-option {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .filter-button {
+    min-width: 150px;
+    padding: 8px 12px;
+  }
 }
 
 .layout-switcher {
@@ -1075,6 +1410,122 @@ const handleLogout = () => {
 
   .preview-info h3 {
     font-size: 20px;
+  }
+}
+
+/* ========== 删除确认弹框样式 ========== */
+.delete-confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  animation: modalFadeIn 0.3s ease;
+}
+
+.delete-confirm-content {
+  background: linear-gradient(135deg, #FFF8F0 0%, #FFE4E1 100%);
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(212, 165, 116, 0.35);
+  border: 2px solid rgba(212, 165, 116, 0.25);
+  animation: contentSlideIn 0.3s ease;
+}
+
+.delete-confirm-icon {
+  color: #f44336;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  animation: iconShake 0.5s ease;
+}
+
+@keyframes iconShake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+.delete-confirm-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #8B6F47;
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+}
+
+.delete-confirm-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.delete-confirm-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.delete-confirm-btn-primary {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+.delete-confirm-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5);
+}
+
+.delete-confirm-btn-primary:active {
+  transform: translateY(0);
+}
+
+.delete-confirm-btn-cancel {
+  background: rgba(255, 255, 255, 0.9);
+  color: #8B6F47;
+  border: 2px solid rgba(212, 165, 116, 0.3);
+}
+
+.delete-confirm-btn-cancel:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(212, 165, 116, 0.5);
+  transform: translateY(-1px);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .delete-confirm-content {
+    padding: 32px 24px;
+    max-width: 90%;
+  }
+
+  .delete-confirm-title {
+    font-size: 18px;
+  }
+
+  .delete-confirm-buttons {
+    flex-direction: column;
+  }
+
+  .delete-confirm-btn {
+    width: 100%;
   }
 }
 

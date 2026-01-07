@@ -5,7 +5,7 @@ export const categories = [
     "options": [
       { "value": "main_gown", "label": "主纱" },
       { "value": "xiuhe", "label": "秀禾服" },
-      { "value": "cocktail_dress", "label": "敬酒服/晚宴礼服" }
+      { "value": "cocktail_dress", "label": "礼服" }
     ]
   },
   {
